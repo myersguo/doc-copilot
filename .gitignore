@@ -1,0 +1,34 @@
+# 依赖目录
+node_modules/
+
+# 构建输出目录
+dist/
+
+# IDE配置文件
+.vscode/
+
+# 环境变量文件
+.env
+.env.local
+
+# 日志文件
+*.log
+
+# 系统文件
+.DS_Store
+
+# 调试文件
+*.swp
+*.swo
+
+# 测试覆盖率目录
+coverage/
+
+# 包管理器文件
+package-lock.json
+
+# Vite缓存
+.vite/
+
+# 临时文件
+*.tmp
