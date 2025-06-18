@@ -161,9 +161,10 @@ export function initializeEventListeners() {
     const isInIframe = isInGoogleDocsIframe();
     
     if (isGoogleDocs && !isInIframe) {
-        console.log('Skipping event listeners in main Google Docs document');
+        console.log('Skipping event listeners in main Google Docs document - editing happens in iframe');
         return;
     }
+    
     if (!isGoogleDocs && isInIframe) {
         console.log('Skipping event listeners in non-Google Docs iframe');
         return;
