@@ -141,7 +141,35 @@ function isGoogleDocsEditor(element: HTMLElement): boolean {
     return false;
 }
 
+export function isInGoogleDocsIframe(): boolean {
+    if (window.self === window.top) return false;
+    
+    try {
+        return window.parent.location.href.includes('docs.google.com');
+    } catch (e) {
+        const body = document.body;
+        return body && (
+            body.classList.contains('docs-texteventtarget-iframe') ||
+            document.querySelector('[role="textbox"]') !== null ||
+            document.querySelector('.kix-') !== null
+        );
+    }
+}
+
 export function initializeEventListeners() {
+    const isGoogleDocs = window.location.href.includes('docs.google.com');
+    const isInIframe = isInGoogleDocsIframe();
+    
+    if (isGoogleDocs && !isInIframe) {
+        console.log('Skipping event listeners in main Google Docs document');
+        return;
+    }
+    if (!isGoogleDocs && isInIframe) {
+        console.log('Skipping event listeners in non-Google Docs iframe');
+        return;
+    }
+    
+    console.log('Initializing event listeners', { isGoogleDocs, isInIframe });
     document.addEventListener('input', handleInput, true);
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('click', () => hideCompletion(), true);

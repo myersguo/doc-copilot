@@ -1,4 +1,5 @@
 import { CursorContext, ScreenPosition } from '../../types';
+import { isInGoogleDocsIframe } from './completion-handler';
 
 export function isInCodeBlock(element: Node | null): boolean {
     if (!element) return false;
@@ -17,6 +18,8 @@ export function isInCodeBlock(element: Node | null): boolean {
     return false;
 }
 
+
+
 export function getCursorContext(): CursorContext | null {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return null;
@@ -26,9 +29,22 @@ export function getCursorContext(): CursorContext | null {
     
     // Find the nearest block-level or editable container
     let container = startContainer.parentElement;
-    while(container && container.isContentEditable === false) {
-        container = container.parentElement;
-        if(container === document.body) return null;
+    
+    if (window.location.href.includes('docs.google.com') || isInGoogleDocsIframe()) {
+        while (container && !container.hasAttribute('role') && container !== document.body) {
+            container = container.parentElement;
+        }
+        if (!container || container.getAttribute('role') !== 'textbox') {
+            const editableElement = document.querySelector('[contenteditable="true"], [role="textbox"], .kix-page-paginated, .kix-page');
+            if (editableElement && editableElement.contains(startContainer)) {
+                container = editableElement as HTMLElement;
+            }
+        }
+    } else {
+        while(container && container.isContentEditable === false) {
+            container = container.parentElement;
+            if(container === document.body) return null;
+        }
     }
     
     if (!container) {
@@ -65,10 +81,33 @@ export function getCursorScreenPosition(): ScreenPosition {
     }
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0 && range.startContainer.getBoundingClientRect) {
-      return range.startContainer.getBoundingClientRect();
+    
+    let x = rect.left + window.scrollX;
+    let y = rect.bottom + window.scrollY;
+    
+    if (rect.width === 0 && rect.height === 0) {
+        const startContainer = range.startContainer;
+        if (startContainer.nodeType === Node.ELEMENT_NODE) {
+            const elementRect = (startContainer as Element).getBoundingClientRect();
+            x = elementRect.left + window.scrollX;
+            y = elementRect.bottom + window.scrollY;
+        }
     }
-    return { x: rect.left + window.scrollX, y: rect.bottom + window.scrollY };
+    
+    if (window.self !== window.top) {
+        try {
+            const iframe = window.parent.document.querySelector('iframe[src*="docs.google.com"], iframe.docs-texteventtarget-iframe, iframe');
+            if (iframe) {
+                const iframeRect = iframe.getBoundingClientRect();
+                x += iframeRect.left + window.parent.scrollX;
+                y += iframeRect.top + window.parent.scrollY;
+            }
+        } catch (e) {
+            console.log('Cross-origin iframe detected, using local coordinates');
+        }
+    }
+    
+    return { x, y };
 }
 
 export function insertTextAtCursor(text: string): boolean {

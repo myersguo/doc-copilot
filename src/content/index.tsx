@@ -3,9 +3,23 @@ import ReactDOM from 'react-dom/client';
 import CompletionPopup from './ui/CompletionPopup';
 import {  initializeEventListeners } from './features/completion-handler';
 
-const rootEl = document.createElement('div');
+function getTargetDocument(): Document {
+    if (window.self !== window.top) {
+        try {
+            if (window.parent.document) {
+                return window.parent.document;
+            }
+        } catch (e) {
+            console.log('Cross-origin iframe detected, rendering popup in iframe');
+        }
+    }
+    return document;
+}
+
+const targetDocument = getTargetDocument();
+const rootEl = targetDocument.createElement('div');
 rootEl.id = 'shichuang-ai-completer-root';
-document.body.appendChild(rootEl);
+targetDocument.body.appendChild(rootEl);
 const reactRoot = ReactDOM.createRoot(rootEl);
 
 // Function to render the UI
