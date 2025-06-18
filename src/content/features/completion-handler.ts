@@ -126,7 +126,7 @@ function isUrlMatched(url: string, patterns: string[]): boolean {
 }
 
 function isGoogleDocsEditor(element: HTMLElement): boolean {
-    if (!window.location.href.includes('docs.google.com')) return false;
+    if (!window.location.href.includes('docs.google.com') && !isInGoogleDocsIframe()) return false;
     
     let current: HTMLElement | null = element;
     while (current && current !== document.body) {
@@ -138,7 +138,17 @@ function isGoogleDocsEditor(element: HTMLElement): boolean {
         }
         current = current.parentElement;
     }
-    return false;
+    
+    return isGoogleDocsEditingIframe();
+}
+
+function isGoogleDocsEditingIframe(): boolean {
+    const body = document.body;
+    return body && (
+        body.classList.contains('docs-texteventtarget-iframe') ||
+        document.querySelector('.docs-texteventtarget-iframe') !== null ||
+        (window.self !== window.top && document.querySelector('[role="textbox"]') !== null)
+    );
 }
 
 export function isInGoogleDocsIframe(): boolean {
@@ -160,6 +170,8 @@ export function initializeEventListeners() {
     const isGoogleDocs = window.location.href.includes('docs.google.com');
     const isInIframe = isInGoogleDocsIframe();
     
+    console.log('Initializing event listeners', { isGoogleDocs, isInIframe });
+    
     if (isGoogleDocs && !isInIframe) {
         console.log('Skipping event listeners in main Google Docs document - editing happens in iframe');
         return;
@@ -170,9 +182,13 @@ export function initializeEventListeners() {
         return;
     }
     
-    console.log('Initializing event listeners', { isGoogleDocs, isInIframe });
-    document.addEventListener('input', handleInput, true);
-    document.addEventListener('keydown', handleKeyDown, true);
-    document.addEventListener('click', () => hideCompletion(), true);
-    document.addEventListener('scroll', () => hideCompletion(), true);
+    if ((isGoogleDocs && isInIframe && isGoogleDocsEditingIframe()) || (!isGoogleDocs && !isInIframe)) {
+        console.log('Initializing event listeners in', isGoogleDocs ? 'Google Docs editing iframe' : 'regular page');
+        document.addEventListener('input', handleInput, true);
+        document.addEventListener('keydown', handleKeyDown, true);
+        document.addEventListener('click', () => hideCompletion(), true);
+        document.addEventListener('scroll', () => hideCompletion(), true);
+    } else {
+        console.log('Skipping event listeners in non-editing iframe');
+    }
 }

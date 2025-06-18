@@ -31,13 +31,20 @@ export function getCursorContext(): CursorContext | null {
     let container = startContainer.parentElement;
     
     if (window.location.href.includes('docs.google.com') || isInGoogleDocsIframe()) {
-        while (container && !container.hasAttribute('role') && container !== document.body) {
+        while (container && container !== document.body) {
+            const className = container.className || '';
+            if (className.includes('kix-') || 
+                container.hasAttribute('role') && container.getAttribute('role') === 'textbox' ||
+                className.includes('docs-texteventtarget')) {
+                break;
+            }
             container = container.parentElement;
         }
-        if (!container || container.getAttribute('role') !== 'textbox') {
-            const editableElement = document.querySelector('[contenteditable="true"], [role="textbox"], .kix-page-paginated, .kix-page');
-            if (editableElement && editableElement.contains(startContainer)) {
-                container = editableElement as HTMLElement;
+        
+        if (!container || container === document.body) {
+            const kixElement = document.querySelector('.kix-page-paginated, .kix-page, .kix-appview-editor, [role="textbox"]');
+            if (kixElement && kixElement.contains(startContainer)) {
+                container = kixElement as HTMLElement;
             }
         }
     } else {
@@ -47,14 +54,7 @@ export function getCursorContext(): CursorContext | null {
         }
     }
     
-    if (!container) {
-        const docsEditor = document.querySelector('.kix-page-paginated, .kix-page, [role="textbox"]');
-        if (docsEditor && docsEditor.contains(startContainer)) {
-            container = docsEditor as HTMLElement;
-        } else {
-            return null;
-        }
-    }
+    if (!container) return null;
 
     const fullText = container.textContent || '';
     
