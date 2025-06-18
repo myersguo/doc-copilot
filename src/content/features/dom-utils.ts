@@ -28,17 +28,31 @@ export function getCursorContext(): CursorContext | null {
     let container = startContainer.parentElement;
     
     if (isGoogleDocs()) {
+        console.log('[DOC-COPILOT] Google Docs container search');
         while(container && !container.classList.contains('kix-page-content-wrap') && 
               !container.classList.contains('docs-texteventtarget-iframe')) {
             container = container.parentElement;
-            if(container === document.body) return null;
+            if(container === document.body) {
+                console.log('[DOC-COPILOT] Reached document body, no container found');
+                return null;
+            }
         }
     } else {
+        console.log('[DOC-COPILOT] Standard contentEditable container search');
         while(container && container.isContentEditable === false) {
             container = container.parentElement;
-            if(container === document.body) return null;
+            if(container === document.body) {
+                console.log('[DOC-COPILOT] Reached document body, no container found');
+                return null;
+            }
         }
     }
+    console.log('[DOC-COPILOT] Found container:', {
+        tagName: container?.tagName,
+        className: container?.className,
+        textLength: container?.textContent?.length
+    });
+    
     if(!container) return null;
 
     const fullText = container.textContent || '';
@@ -66,15 +80,21 @@ export function getCursorScreenPosition(): ScreenPosition {
     }
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0 && range.startContainer.getBoundingClientRect) {
-      return range.startContainer.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && range.startContainer.nodeType === Node.ELEMENT_NODE) {
+      return (range.startContainer as Element).getBoundingClientRect();
     }
     return { x: rect.left + window.scrollX, y: rect.bottom + window.scrollY };
 }
 
 export function isGoogleDocs(): boolean {
-    return window.location.hostname === 'docs.google.com' && 
+    const result = window.location.hostname === 'docs.google.com' && 
            window.location.pathname.includes('/document/');
+    console.log('[DOC-COPILOT] isGoogleDocs check:', {
+        hostname: window.location.hostname,
+        pathname: window.location.pathname,
+        result
+    });
+    return result;
 }
 
 export function getGoogleDocsEditor(): HTMLElement | null {

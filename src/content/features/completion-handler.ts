@@ -4,7 +4,7 @@ import { ExtensionConfig, CursorContext, ConfigUpdateRequest, RuntimeMessage } f
 import { renderCompletionUI } from '../index';
 
 let config: ExtensionConfig | null = null;
-let timer: NodeJS.Timeout | null = null;
+let timer: number | null = null;
 let lastContext: string = '';
 let requestCounter = 0;
 let isShowingCompletion = false;
@@ -80,25 +80,61 @@ function shouldTriggerCompletion(context: CursorContext): boolean {
 }
 
 export function handleInput(event: Event) {
-    if (!config || !isUrlMatched(window.location.href, config.urls)) return;
+    console.log('[DOC-COPILOT] handleInput triggered:', {
+        eventType: event.type,
+        target: event.target,
+        url: window.location.href,
+        isGoogleDocs: isGoogleDocs()
+    });
     
-    // Ensure the event target is editable
+    if (!config || !isUrlMatched(window.location.href, config.urls)) {
+        console.log('[DOC-COPILOT] URL not matched or no config:', {
+            config: !!config,
+            url: window.location.href,
+            patterns: config?.urls
+        });
+        return;
+    }
+    
     const target = event.target as HTMLElement;
-    if (!isEditableElement(target)) return;
+    const isEditable = isEditableElement(target);
+    console.log('[DOC-COPILOT] Element editability check:', {
+        target: target.tagName,
+        className: target.className,
+        isContentEditable: target.isContentEditable,
+        isEditable: isEditable,
+        isGoogleDocs: isGoogleDocs()
+    });
+    
+    if (!isEditable) return;
     
     if (timer) clearTimeout(timer);
     if (isShowingCompletion) hideCompletion();
 
     const context = getCursorContext();
+    console.log('[DOC-COPILOT] Cursor context:', {
+        hasContext: !!context,
+        contextLength: context?.fullContext?.length,
+        isSameAsLast: context?.fullContext === lastContext
+    });
+    
     if (!context || context.fullContext === lastContext) return;
     
     lastContext = context.fullContext;
 
-    if (!shouldTriggerCompletion(context)) return;
+    const shouldTrigger = shouldTriggerCompletion(context);
+    console.log('[DOC-COPILOT] Trigger completion check:', {
+        shouldTrigger,
+        beforeLength: context.before.length,
+        waitTime: config.waitTime
+    });
+
+    if (!shouldTrigger) return;
 
     timer = setTimeout(() => {
         const currentContext = getCursorContext();
         if (currentContext && currentContext.fullContext === lastContext) {
+            console.log('[DOC-COPILOT] Requesting completion after timeout');
             requestCompletion(currentContext);
         }
     }, config!.waitTime * 1000);
@@ -126,19 +162,64 @@ function isUrlMatched(url: string, patterns: string[]): boolean {
 }
 
 function isEditableElement(target: HTMLElement): boolean {
-    if (target.isContentEditable) return true;
+    console.log('[DOC-COPILOT] isEditableElement check:', {
+        tagName: target.tagName,
+        className: target.className,
+        isContentEditable: target.isContentEditable,
+        isGoogleDocs: isGoogleDocs()
+    });
     
-    if (isGoogleDocs()) {
-        return target.closest('.docs-texteventtarget-iframe') !== null ||
-               target.classList.contains('docs-texteventtarget-iframe');
+    if (target.isContentEditable) {
+        console.log('[DOC-COPILOT] Element is contentEditable');
+        return true;
     }
     
+    if (isGoogleDocs()) {
+        const hasIframeClass = target.classList.contains('docs-texteventtarget-iframe');
+        const closestIframe = target.closest('.docs-texteventtarget-iframe');
+        const hasKixContent = target.closest('.kix-page-content-wrap');
+        
+        console.log('[DOC-COPILOT] Google Docs element check:', {
+            hasIframeClass,
+            hasClosestIframe: !!closestIframe,
+            hasKixContent: !!hasKixContent
+        });
+        
+        return hasIframeClass || !!closestIframe || !!hasKixContent;
+    }
+    
+    console.log('[DOC-COPILOT] Element is not editable');
     return false;
 }
 
 export function initializeEventListeners() {
+    console.log('[DOC-COPILOT] Initializing event listeners:', {
+        url: window.location.href,
+        isGoogleDocs: isGoogleDocs()
+    });
+    
     document.addEventListener('input', handleInput, true);
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('click', () => hideCompletion(), true);
     document.addEventListener('scroll', () => hideCompletion(), true);
+    
+    if (isGoogleDocs()) {
+        console.log('[DOC-COPILOT] Adding Google Docs specific event listeners');
+        document.addEventListener('keyup', handleInput, true);
+        document.addEventListener('compositionend', handleInput, true);
+        document.addEventListener('textInput', handleInput, true);
+        
+        setTimeout(() => {
+            const iframe = document.querySelector('.docs-texteventtarget-iframe') as HTMLIFrameElement;
+            if (iframe) {
+                console.log('[DOC-COPILOT] Found Google Docs iframe, attempting to add listeners');
+                try {
+                    iframe.addEventListener('input', handleInput, true);
+                    iframe.addEventListener('keyup', handleInput, true);
+                } catch (error) {
+                    console.log('[DOC-COPILOT] Could not add iframe listeners (expected):', error);
+                }
+            }
+        }, 1000);
+    }
 }
