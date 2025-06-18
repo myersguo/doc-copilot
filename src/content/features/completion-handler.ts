@@ -84,7 +84,7 @@ export function handleInput(event: Event) {
     
     // Ensure the event target is editable
     const target = event.target as HTMLElement;
-    if (!target.isContentEditable) return;
+    if (!target.isContentEditable && !isGoogleDocsEditor(target)) return;
     
     if (timer) clearTimeout(timer);
     if (isShowingCompletion) hideCompletion();
@@ -123,6 +123,22 @@ function isUrlMatched(url: string, patterns: string[]): boolean {
         const regex = new RegExp(pattern.replace(/\*/g, '.*'));
         return regex.test(url);
     });
+}
+
+function isGoogleDocsEditor(element: HTMLElement): boolean {
+    if (!window.location.href.includes('docs.google.com')) return false;
+    
+    let current: HTMLElement | null = element;
+    while (current && current !== document.body) {
+        const className = current.className || '';
+        if (className.includes('kix-') || 
+            current.hasAttribute('role') && current.getAttribute('role') === 'textbox' ||
+            className.includes('docs-texteventtarget')) {
+            return true;
+        }
+        current = current.parentElement;
+    }
+    return false;
 }
 
 export function initializeEventListeners() {
