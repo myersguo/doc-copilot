@@ -166,29 +166,51 @@ export function isInGoogleDocsIframe(): boolean {
     }
 }
 
+function registerListeners(targetDocument: Document) {
+    console.log('Registering listeners on', targetDocument === document ? 'main document' : 'iframe document');
+    targetDocument.addEventListener('input', handleInput, true);
+    targetDocument.addEventListener('keydown', handleKeyDown, true);
+    targetDocument.addEventListener('click', () => hideCompletion(), true);
+    targetDocument.addEventListener('scroll', () => hideCompletion(), true);
+    
+    targetDocument.addEventListener('keyup', handleInput, true);
+    targetDocument.addEventListener('compositionend', handleInput, true);
+}
+
 export function initializeEventListeners() {
     const isGoogleDocs = window.location.href.includes('docs.google.com');
-    const isInIframe = isInGoogleDocsIframe();
     
-    console.log('Initializing event listeners', { isGoogleDocs, isInIframe });
+    console.log('Initializing event listeners', { isGoogleDocs, url: window.location.href });
     
-    if (isGoogleDocs && !isInIframe) {
-        console.log('Skipping event listeners in main Google Docs document - editing happens in iframe');
-        return;
-    }
-    
-    if (!isGoogleDocs && isInIframe) {
-        console.log('Skipping event listeners in non-Google Docs iframe');
-        return;
-    }
-    
-    if ((isGoogleDocs && isInIframe && isGoogleDocsEditingIframe()) || (!isGoogleDocs && !isInIframe)) {
-        console.log('Initializing event listeners in', isGoogleDocs ? 'Google Docs editing iframe' : 'regular page');
-        document.addEventListener('input', handleInput, true);
-        document.addEventListener('keydown', handleKeyDown, true);
-        document.addEventListener('click', () => hideCompletion(), true);
-        document.addEventListener('scroll', () => hideCompletion(), true);
+    if (isGoogleDocs) {
+        const gdocsIframe = document.querySelector<HTMLIFrameElement>('.docs-texteventtarget-iframe');
+        
+        if (gdocsIframe) {
+            console.log('Google Docs iframe found, attempting to register listeners');
+            
+            const attemptRegistration = () => {
+                try {
+                    if (gdocsIframe.contentDocument) {
+                        console.log('Google Docs iframe loaded successfully, registering listeners');
+                        registerListeners(gdocsIframe.contentDocument);
+                    } else {
+                        console.log('Waiting for Google Docs iframe to load...');
+                        setTimeout(attemptRegistration, 500);
+                    }
+                } catch (error) {
+                    console.log('Cross-origin iframe access blocked, trying alternative approach');
+                    registerListeners(document);
+                }
+            };
+            
+            gdocsIframe.addEventListener('load', attemptRegistration);
+            attemptRegistration(); // Try immediately in case already loaded
+        } else {
+            console.log('Google Docs iframe not found, registering on main document');
+            registerListeners(document);
+        }
     } else {
-        console.log('Skipping event listeners in non-editing iframe');
+        console.log('Not in Google Docs context, registering listeners on main document');
+        registerListeners(document);
     }
 }
