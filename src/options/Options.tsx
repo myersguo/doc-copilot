@@ -6,6 +6,7 @@ const defaultConfig: ExtensionConfig = {
     urls: [
       'https://bytedance.sg.larkoffice.com/docx/*',
       'https://bytedance.larkoffice.com/docx/*',
+      'https://docs.google.com/document/*',
     ],
     apiUrl: 'https://api.openai.com/v1/chat/completions',
     apiKey: '',

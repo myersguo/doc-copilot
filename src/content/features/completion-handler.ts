@@ -1,5 +1,5 @@
 // src/content/features/completion-handler.ts
-import { getCursorContext, getCursorScreenPosition, insertTextAtCursor, isInCodeBlock } from './dom-utils';
+import { getCursorContext, getCursorScreenPosition, insertTextAtCursor, isInCodeBlock, isGoogleDocs } from './dom-utils';
 import { ExtensionConfig, CursorContext, ConfigUpdateRequest, RuntimeMessage } from '../../types';
 import { renderCompletionUI } from '../index';
 
@@ -84,7 +84,7 @@ export function handleInput(event: Event) {
     
     // Ensure the event target is editable
     const target = event.target as HTMLElement;
-    if (!target.isContentEditable) return;
+    if (!isEditableElement(target)) return;
     
     if (timer) clearTimeout(timer);
     if (isShowingCompletion) hideCompletion();
@@ -123,6 +123,17 @@ function isUrlMatched(url: string, patterns: string[]): boolean {
         const regex = new RegExp(pattern.replace(/\*/g, '.*'));
         return regex.test(url);
     });
+}
+
+function isEditableElement(target: HTMLElement): boolean {
+    if (target.isContentEditable) return true;
+    
+    if (isGoogleDocs()) {
+        return target.closest('.docs-texteventtarget-iframe') !== null ||
+               target.classList.contains('docs-texteventtarget-iframe');
+    }
+    
+    return false;
 }
 
 export function initializeEventListeners() {

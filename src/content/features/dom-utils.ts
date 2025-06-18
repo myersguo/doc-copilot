@@ -26,9 +26,18 @@ export function getCursorContext(): CursorContext | null {
     
     // Find the nearest block-level or editable container
     let container = startContainer.parentElement;
-    while(container && container.isContentEditable === false) {
-        container = container.parentElement;
-        if(container === document.body) return null;
+    
+    if (isGoogleDocs()) {
+        while(container && !container.classList.contains('kix-page-content-wrap') && 
+              !container.classList.contains('docs-texteventtarget-iframe')) {
+            container = container.parentElement;
+            if(container === document.body) return null;
+        }
+    } else {
+        while(container && container.isContentEditable === false) {
+            container = container.parentElement;
+            if(container === document.body) return null;
+        }
     }
     if(!container) return null;
 
@@ -63,6 +72,16 @@ export function getCursorScreenPosition(): ScreenPosition {
     return { x: rect.left + window.scrollX, y: rect.bottom + window.scrollY };
 }
 
+export function isGoogleDocs(): boolean {
+    return window.location.hostname === 'docs.google.com' && 
+           window.location.pathname.includes('/document/');
+}
+
+export function getGoogleDocsEditor(): HTMLElement | null {
+    const iframe = document.querySelector('.docs-texteventtarget-iframe') as HTMLIFrameElement;
+    return iframe || null;
+}
+
 export function insertTextAtCursor(text: string): boolean {
   const selection = window.getSelection();
   if (!selection || !selection.rangeCount) return false;
@@ -76,10 +95,16 @@ export function insertTextAtCursor(text: string): boolean {
   // Move cursor to the end of the inserted text
   selection.collapse(textNode, textNode.length);
 
-  // Dispatch an 'input' event to notify the editor (e.g., Lark) of the change
+  // Dispatch an 'input' event to notify the editor
   const target = range.commonAncestorContainer.parentElement;
   if (target) {
-    target.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+    if (isGoogleDocs()) {
+      target.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+      target.dispatchEvent(new Event('textInput', { bubbles: true }));
+      target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+    } else {
+      target.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
+    }
   }
   return true;
 }
