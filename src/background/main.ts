@@ -1,12 +1,17 @@
 import {
   AICompletionRequest,
   AICompletionResponse,
+  AIImageRequest,
+  AIImageResponse,
 } from '../types';
 
 // Listens for messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'AI_COMPLETION_REQUEST') {
     handleCompletionRequest(request, sendResponse);
+    return true; // Keep the message channel open for async response
+  } else if (request.type === 'AI_IMAGE_REQUEST') {
+    handleImageRequest(request, sendResponse);
     return true; // Keep the message channel open for async response
   }
 });
@@ -113,6 +118,69 @@ function cleanCompletion(completion: string, context: string): string {
   clean = clean.replace(/^[,，、。.]/, '');
 
   return clean;
+}
+
+async function handleImageRequest(
+  message: AIImageRequest,
+  sendResponse: (response: AIImageResponse) => void
+): Promise<void> {
+  const { requestId, config, paragraphText } = message;
+
+  try {
+    if (!config.apiKey) {
+      throw new Error('API Key is not configured.');
+    }
+
+    const imagePrompt = config.imagePrompt.replace('[TextOfParagraph]', paragraphText);
+
+    const response = await fetch(config.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: 'You are a creative assistant that generates concise, vivid descriptions for images based on text content.' },
+          { role: 'user', content: imagePrompt },
+        ],
+        max_tokens: 100,
+        temperature: 0.7,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText} - ${
+          errorData.error?.message || 'Unknown error'
+        }`
+      );
+    }
+
+    const data = await response.json();
+
+    if (data.choices?.[0]?.message?.content) {
+      const imageDescription = data.choices[0].message.content.trim();
+      console.log('AI Image Generation Success:', imageDescription);
+      sendResponse({
+        success: true,
+        requestId: requestId,
+        imageDescription: imageDescription,
+      });
+    } else {
+      throw new Error('API response format is invalid: Missing choices data.');
+    }
+  } catch (error) {
+    console.error('AI Image Generation Request Failed:', error);
+    sendResponse({
+      success: false,
+      requestId: requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 chrome.runtime.onInstalled.addListener(() => {

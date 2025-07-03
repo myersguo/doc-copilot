@@ -83,3 +83,56 @@ export function insertTextAtCursor(text: string): boolean {
   }
   return true;
 }
+
+export function getParagraphElements(): HTMLElement[] {
+  const paragraphs: HTMLElement[] = [];
+  
+  const selectors = [
+    'p', 'div[data-block-type="paragraph"]', 
+    '.notion-text-block', '.ql-editor p',
+    '[contenteditable] p', '[contenteditable] div'
+  ];
+  
+  selectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      const element = el as HTMLElement;
+      if (element.textContent && element.textContent.trim().length > 10) {
+        paragraphs.push(element);
+      }
+    });
+  });
+  
+  return paragraphs;
+}
+
+export function getParagraphPosition(paragraph: HTMLElement): ScreenPosition {
+  const rect = paragraph.getBoundingClientRect();
+  return {
+    x: rect.right + window.scrollX + 5,
+    y: rect.top + window.scrollY + 5
+  };
+}
+
+export function insertImageAfterParagraph(paragraph: HTMLElement, imageDescription: string): boolean {
+  try {
+    const imageElement = document.createElement('div');
+    imageElement.className = 'ai-generated-image';
+    imageElement.style.cssText = `
+      margin: 10px 0;
+      padding: 15px;
+      border: 2px dashed #007bff;
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: #333;
+      font-style: italic;
+    `;
+    imageElement.textContent = `🖼️ AI Generated Image: ${imageDescription}`;
+    
+    paragraph.parentNode?.insertBefore(imageElement, paragraph.nextSibling);
+    return true;
+  } catch (error) {
+    console.error('Failed to insert image:', error);
+    return false;
+  }
+}

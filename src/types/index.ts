@@ -7,6 +7,7 @@ export interface ExtensionConfig {
   model: string;
   waitTime: number;
   prompt: string;
+  imagePrompt: string;
 }
 
 export interface CursorContext {
@@ -35,9 +36,23 @@ export interface AICompletionResponse {
   error?: string;
 }
 
+export interface AIImageRequest {
+  type: 'AI_IMAGE_REQUEST';
+  requestId: number;
+  config: ExtensionConfig;
+  paragraphText: string;
+}
+
+export interface AIImageResponse {
+  success: boolean;
+  requestId: number;
+  imageDescription?: string;
+  error?: string;
+}
+
 export interface ConfigUpdateRequest {
   type: 'CONFIG_UPDATED';
   config: ExtensionConfig;
 }
 
-export type RuntimeMessage = AICompletionRequest | ConfigUpdateRequest;
+export type RuntimeMessage = AICompletionRequest | ConfigUpdateRequest | AIImageRequest;

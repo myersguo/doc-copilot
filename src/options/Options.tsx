@@ -33,6 +33,7 @@ Emphasized the core instruction (return only completion text) upfront
 Streamlined rules for easier parsing
 Added explicit output instruction at the end
 Maintained all original functionality while improving clarity`,
+    imagePrompt: 'Create a clean, modern, minimal infographic or visual card that visually expresses the following idea: [TextOfParagraph]\n\nStyle: flat design, simple icons, bold typography, clear structure, suitable for quick sharing on social media or presentations.',
 };
 
 
@@ -153,6 +154,11 @@ const Options: React.FC = () => {
             <div className="config-group">
                 <label htmlFor="prompt">System Prompt:</label>
                 <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
+            </div>
+            <div className="config-group">
+                <label htmlFor="imagePrompt">Image Generation Prompt:</label>
+                <textarea id="imagePrompt" value={config.imagePrompt} onChange={e => setConfig({...config, imagePrompt: e.target.value})} />
+                <p className="help-text">Prompt for generating image descriptions. Use [TextOfParagraph] as placeholder for the paragraph text.</p>
             </div>
 
             <button onClick={handleSave} className="save-btn">Save Settings</button>
