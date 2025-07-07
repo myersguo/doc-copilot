@@ -20,7 +20,6 @@ chrome.storage.sync.get(null, (data) => {
 chrome.runtime.onMessage.addListener((message: RuntimeMessage) => {
     if (message.type === 'CONFIG_UPDATED') {
         config = message.config;
-        console.log('Configuration updated:', config);
         hideCompletion();
     }
 });
@@ -41,7 +40,6 @@ async function requestCompletion(context: CursorContext) {
     if (!config || !config.apiKey) return;
 
     const requestId = ++requestCounter;
-    console.log('Requesting completion for context:', context.fullContext);
 
     try {
         const response = await chrome.runtime.sendMessage({

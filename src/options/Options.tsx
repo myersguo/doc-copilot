@@ -1,6 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { ExtensionConfig } from '../types';
+import { ExtensionConfig, AITalkTool } from '../types';
 import './index.css';
+
+const defaultAITalkTools: AITalkTool[] = [
+  {
+    id: 'explain',
+    name: '解释',
+    icon: '💡',
+    enabled: true,
+    prompt: `Please provide a detailed and easy-to-understand explanation of the following content. Assume the reader has no professional background. Please cover:
+
+Key term definitions
+Technical background or context
+Possible applications or practical significance
+Potential risks or points of caution
+
+Content to explain:
+[SELECTED_TEXT]`
+  },
+  {
+    id: 'optimize',
+    name: '优化',
+    icon: '✨',
+    enabled: true,
+    prompt: `Please optimize the following content to make it clearer, more logically rigorous, and more concise. You may rewrite parts as needed, but please keep the original meaning. The optimization may include:
+
+More concise and natural language
+Improved structure and readability
+Better technical accuracy
+Stronger logic or persuasiveness
+
+Content to optimize:
+[SELECTED_TEXT]
+
+Please provide the optimized version directly.`
+  }
+];
 
 const defaultConfig: ExtensionConfig = {
     urls: [
@@ -33,12 +68,13 @@ Emphasized the core instruction (return only completion text) upfront
 Streamlined rules for easier parsing
 Added explicit output instruction at the end
 Maintained all original functionality while improving clarity`,
+    aiTalkTools: defaultAITalkTools,
 };
-
 
 const Options: React.FC = () => {
     const [config, setConfig] = useState<ExtensionConfig>(defaultConfig);
     const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [activeTab, setActiveTab] = useState<'general' | 'ai-talk'>('general');
 
     useEffect(() => {
         chrome.storage.sync.get(defaultConfig, (data) => {
@@ -102,58 +138,181 @@ const Options: React.FC = () => {
         setConfig({ ...config, urls: newUrls });
     };
 
+    // AI Talk 工具管理函数
+    const handleToolChange = (index: number, field: keyof AITalkTool, value: string | boolean) => {
+        const newTools = [...config.aiTalkTools];
+        newTools[index] = { ...newTools[index], [field]: value };
+        setConfig({ ...config, aiTalkTools: newTools });
+    };
+
+    const addTool = () => {
+        const newTool: AITalkTool = {
+            id: `tool_${Date.now()}`,
+            name: '新工具',
+            icon: '🔧',
+            enabled: true,
+            prompt: 'Please process the following content:\n\n[SELECTED_TEXT]'
+        };
+        setConfig({ ...config, aiTalkTools: [...config.aiTalkTools, newTool] });
+    };
+
+    const removeTool = (index: number) => {
+        const newTools = config.aiTalkTools.filter((_, i) => i !== index);
+        setConfig({ ...config, aiTalkTools: newTools });
+    };
+
+    const duplicateTool = (index: number) => {
+        const toolToDuplicate = config.aiTalkTools[index];
+        const newTool: AITalkTool = {
+            ...toolToDuplicate,
+            id: `tool_${Date.now()}`,
+            name: `${toolToDuplicate.name} (Copy)`
+        };
+        setConfig({ ...config, aiTalkTools: [...config.aiTalkTools, newTool] });
+    };
+
     return (
         <div className="container">
             <h1>AI Auto-Completion Settings</h1>
 
-            <div className="section-title">
-                Basic Configuration
-                <button type="button" className="reset-btn" onClick={handleReset}>Reset to Default</button>
+            {/* Tab Navigation */}
+            <div className="tab-nav">
+                <button 
+                    className={`tab-btn ${activeTab === 'general' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('general')}
+                >
+                    General Settings
+                </button>
+                <button 
+                    className={`tab-btn ${activeTab === 'ai-talk' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai-talk')}
+                >
+                    AI Talk Tools
+                </button>
             </div>
-            <div className="config-group">
-                <label>Matching URL Patterns:</label>
-                <p className="help-text">The extension will activate on these URLs. Use * as a wildcard.</p>
-                <div className="url-list">
-                    {config.urls.map((url, index) => (
-                        <div key={index} className="url-item">
-                            <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => handleUrlChange(index, e.target.value)}
-                                placeholder="https://example.com/docs/*"
-                            />
-                            <button type="button" className="remove-btn" onClick={() => removeUrl(index)}>Remove</button>
+
+            {/* General Settings Tab */}
+            {activeTab === 'general' && (
+                <>
+                    <div className="section-title">
+                        Basic Configuration
+                        <button type="button" className="reset-btn" onClick={handleReset}>Reset to Default</button>
+                    </div>
+                    <div className="config-group">
+                        <label>Matching URL Patterns:</label>
+                        <p className="help-text">The extension will activate on these URLs. Use * as a wildcard.</p>
+                        <div className="url-list">
+                            {config.urls.map((url, index) => (
+                                <div key={index} className="url-item">
+                                    <input
+                                        type="text"
+                                        value={url}
+                                        onChange={(e) => handleUrlChange(index, e.target.value)}
+                                        placeholder="https://example.com/docs/*"
+                                    />
+                                    <button type="button" className="remove-btn" onClick={() => removeUrl(index)}>Remove</button>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-                <button type="button" className="add-btn" onClick={addUrl}>Add URL Pattern</button>
-            </div>
+                        <button type="button" className="add-btn" onClick={addUrl}>Add URL Pattern</button>
+                    </div>
 
-            <div className="section-title">API Configuration</div>
-             {/* API URL, Key, Model Inputs... */}
-             <div className="config-group">
-                <label htmlFor="apiUrl">OpenAI Compatible API URL:</label>
-                <input id="apiUrl" type="text" value={config.apiUrl} onChange={e => setConfig({...config, apiUrl: e.target.value})} />
-            </div>
-            <div className="config-group">
-                <label htmlFor="apiKey">API Key:</label>
-                <input id="apiKey" type="password" value={config.apiKey} onChange={e => setConfig({...config, apiKey: e.target.value})} placeholder="sk-..." />
-            </div>
-             <div className="config-group">
-                <label htmlFor="model">Model Name:</label>
-                <input id="model" type="text" value={config.model} onChange={e => setConfig({...config, model: e.target.value})} />
-            </div>
+                    <div className="section-title">API Configuration</div>
+                    <div className="config-group">
+                        <label htmlFor="apiUrl">OpenAI Compatible API URL:</label>
+                        <input id="apiUrl" type="text" value={config.apiUrl} onChange={e => setConfig({...config, apiUrl: e.target.value})} />
+                    </div>
+                    <div className="config-group">
+                        <label htmlFor="apiKey">API Key:</label>
+                        <input id="apiKey" type="password" value={config.apiKey} onChange={e => setConfig({...config, apiKey: e.target.value})} placeholder="sk-..." />
+                    </div>
+                    <div className="config-group">
+                        <label htmlFor="model">Model Name:</label>
+                        <input id="model" type="text" value={config.model} onChange={e => setConfig({...config, model: e.target.value})} />
+                    </div>
 
-            <div className="section-title">Behavior Configuration</div>
-            <div className="config-group">
-                <label htmlFor="waitTime">Wait Time (seconds):</label>
-                <input id="waitTime" type="number" min="1" max="10" value={config.waitTime} onChange={e => setConfig({...config, waitTime: parseInt(e.target.value, 10)})} />
-                 <p className="help-text">Time to wait after user stops typing to trigger completion (1-10s).</p>
-            </div>
-            <div className="config-group">
-                <label htmlFor="prompt">System Prompt:</label>
-                <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
-            </div>
+                    <div className="section-title">Behavior Configuration</div>
+                    <div className="config-group">
+                        <label htmlFor="waitTime">Wait Time (seconds):</label>
+                        <input id="waitTime" type="number" min="1" max="10" value={config.waitTime} onChange={e => setConfig({...config, waitTime: parseInt(e.target.value, 10)})} />
+                        <p className="help-text">Time to wait after user stops typing to trigger completion (1-10s).</p>
+                    </div>
+                    <div className="config-group">
+                        <label htmlFor="prompt">System Prompt:</label>
+                        <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
+                    </div>
+                </>
+            )}
+
+            {/* AI Talk Tools Tab */}
+            {activeTab === 'ai-talk' && (
+                <>
+                    <div className="section-title">
+                        AI Talk Tools
+                        <button type="button" className="add-btn" onClick={addTool}>Add New Tool</button>
+                    </div>
+                    <p className="help-text">Configure tools that appear when you select text. Use [SELECTED_TEXT] as a placeholder for the selected content.</p>
+                    
+                    <div className="tools-list">
+                        {config.aiTalkTools.map((tool, index) => (
+                            <div key={tool.id} className="tool-item">
+                                <div className="tool-header">
+                                    <div className="tool-basic">
+                                        <div className="tool-enable">
+                                            <input
+                                                type="checkbox"
+                                                checked={tool.enabled}
+                                                onChange={(e) => handleToolChange(index, 'enabled', e.target.checked)}
+                                            />
+                                        </div>
+                                        <div className="tool-icon-input">
+                                            <input
+                                                type="text"
+                                                value={tool.icon}
+                                                onChange={(e) => handleToolChange(index, 'icon', e.target.value)}
+                                                placeholder="🔧"
+                                                className="icon-input"
+                                            />
+                                        </div>
+                                        <div className="tool-name-input">
+                                            <input
+                                                type="text"
+                                                value={tool.name}
+                                                onChange={(e) => handleToolChange(index, 'name', e.target.value)}
+                                                placeholder="Tool Name"
+                                                className="name-input"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="tool-actions">
+                                        <button type="button" className="duplicate-btn" onClick={() => duplicateTool(index)}>
+                                            📋
+                                        </button>
+                                        <button type="button" className="remove-btn" onClick={() => removeTool(index)}>
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="tool-prompt">
+                                    <label>Prompt:</label>
+                                    <textarea
+                                        value={tool.prompt}
+                                        onChange={(e) => handleToolChange(index, 'prompt', e.target.value)}
+                                        placeholder="Enter your prompt here. Use [SELECTED_TEXT] for the selected content."
+                                        className="prompt-textarea"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {config.aiTalkTools.length === 0 && (
+                        <div className="empty-state">
+                            <p>No AI Talk tools configured. Click "Add New Tool" to create your first tool.</p>
+                        </div>
+                    )}
+                </>
+            )}
 
             <button onClick={handleSave} className="save-btn">Save Settings</button>
             {status && <div className={`status ${status.type}`}>{status.message}</div>}

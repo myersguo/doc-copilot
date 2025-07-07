@@ -7,7 +7,18 @@ export interface ExtensionConfig {
   model: string;
   waitTime: number;
   prompt: string;
+    aiTalkTools: AITalkTool[];
+
 }
+
+export interface AITalkTool {
+  id: string;
+  name: string;
+  icon: string;
+  prompt: string;
+  enabled: boolean;
+}
+
 
 export interface CursorContext {
   before: string;
@@ -35,9 +46,47 @@ export interface AICompletionResponse {
   error?: string;
 }
 
+export interface AITalkRequest {
+  type: 'AI_TALK_REQUEST';
+  requestId: number;
+  config: ExtensionConfig;
+  selectedText: string;
+  prompt: string;
+  conversationHistory?: ConversationMessage[];
+}
+
+export interface AITalkResponse {
+  success: boolean;
+  requestId: number;
+  response?: string;
+  error?: string;
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+
+
+
 export interface ConfigUpdateRequest {
   type: 'CONFIG_UPDATED';
   config: ExtensionConfig;
 }
 
-export type RuntimeMessage = AICompletionRequest | ConfigUpdateRequest;
+
+export interface ShowToolbarRequest {
+  type: 'SHOW_TOOLBAR';
+  selectedText: string;
+  position: ScreenPosition;
+}
+
+export interface OpenSidePanelRequest {
+  type: 'OPEN_SIDE_PANEL';
+  toolId: string;
+  selectedText: string;
+}
+
+export type RuntimeMessage = AICompletionRequest | AITalkRequest | ConfigUpdateRequest | ShowToolbarRequest | OpenSidePanelRequest;
