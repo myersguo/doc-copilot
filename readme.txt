@@ -8,6 +8,10 @@ Features:
 - Real-time collaboration support
 - Cross-platform document management
 - Customizable templates
+- Markdown format support
+- AI-powered inline completion popup with Tab/Esc shortcuts
+- Context-aware suggestions based on cursor position
+- Smart text selection toolbar with customizable AI tools (e.g., polish, translate)
 
 Tech Stack:
 - Frontend: React + TypeScript
