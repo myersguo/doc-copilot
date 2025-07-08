@@ -5,22 +5,22 @@ import './index.css';
 const defaultAITalkTools: AITalkTool[] = [
   {
     id: 'explain',
-    name: '解释',
+    name: 'explain',
     icon: '💡',
     enabled: true,
-    prompt: `Please provide a detailed and easy-to-understand explanation of the following content. Assume the reader has no professional background. Please cover:
+    prompt: `Please provide a detailed and easy-to-understand explanation of the following content, using the **same language** as the content itself. If the content contains a mix of languages, use the **main (dominant)** language of the content. Assume the reader has no professional background. Please include:
 
-Key term definitions
-Technical background or context
-Possible applications or practical significance
-Potential risks or points of caution
+- Key term definitions
+- Technical background or context
+- Possible applications or practical significance
+- Potential risks or points of caution
 
 Content to explain:
 [SELECTED_TEXT]`
   },
   {
     id: 'optimize',
-    name: '优化',
+    name: 'optimize',
     icon: '✨',
     enabled: true,
     prompt: `Please optimize the following content to make it clearer, more logically rigorous, and more concise. You may rewrite parts as needed, but please keep the original meaning. The optimization may include:
@@ -37,7 +37,7 @@ Please provide the optimized version directly.`
   },
   {
     id: 'translate',
-    name: '翻译',
+    name: 'translate',
     icon: '🚀',
     enabled: true,
     prompt: `Detect the input language:
@@ -81,6 +81,7 @@ Streamlined rules for easier parsing
 Added explicit output instruction at the end
 Maintained all original functionality while improving clarity`,
     aiTalkTools: defaultAITalkTools,
+    stream: true, // 默认开启流式
 };
 
 const Options: React.FC = () => {
@@ -297,7 +298,40 @@ const Options: React.FC = () => {
                         <button type="button" className="add-btn" onClick={addTool}>Add New Tool</button>
                     </div>
                     <p className="help-text">Configure tools that appear when you select text. Use [SELECTED_TEXT] as a placeholder for the selected content.</p>
-                    
+
+                    <div className="config-group stream-switch-group">
+                        <label htmlFor="stream" className="stream-switch-label">AI Talk Stream Mode:</label>
+                        <label className="switch">
+                            <input
+                                id="stream"
+                                type="checkbox"
+                                checked={config.stream ?? true}
+                                onChange={e => {
+                                    const newConfig = { ...config, stream: e.target.checked };
+                                    setConfig(newConfig);
+                                    // 自动保存并广播
+                                    const cleanedConfig = {
+                                        ...newConfig,
+                                        urls: newConfig.urls.map(u => u.trim()).filter(Boolean),
+                                    };
+                                    chrome.storage.sync.set(cleanedConfig, () => {
+                                        // 通知所有 tab
+                                        chrome.tabs.query({}, (tabs) => {
+                                            tabs.forEach((tab) => {
+                                                if (tab.id) {
+                                                    chrome.tabs.sendMessage(tab.id, { type: 'AITALKTOOL_STREAM_UPDATED', stream: cleanedConfig.stream })
+                                                        .catch(() => { /* Ignore errors for tabs that can't be reached */ });
+                                                }
+                                            });
+                                        });
+                                    });
+                                }}
+                            />
+                            <span className="slider round"></span>
+                        </label>
+                        <span className="help-text">Enable stream mode for AI Talk (recommended for better experience)</span>
+                    </div>
+
                     <div className="tools-list">
                         {config.aiTalkTools.map((tool, index) => (
                             <div key={tool.id} className="tool-item">

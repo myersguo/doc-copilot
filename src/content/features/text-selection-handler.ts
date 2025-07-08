@@ -32,6 +32,56 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
+// 监听 stream 状态变化
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'AITALKTOOL_STREAM_UPDATED') {
+    if (config) config.stream = message.stream;
+    else config = { stream: message.stream } as ExtensionConfig;
+    // 可根据需要在此处触发 UI 更新或其他副作用
+  }
+});
+
+// 监听 storage 变化，实时同步 config
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    console.log('changes', changes);
+    console.log('areaName', areaName);
+  if (areaName === 'sync') {
+    if (changes.stream) {
+      if (!config) config = {} as ExtensionConfig;
+      config.stream = changes.stream.newValue;
+    }
+    // 可同步其他配置项
+    if (changes.urls) {
+      if (!config) config = {} as ExtensionConfig;
+      config.urls = changes.urls.newValue;
+    }
+    if (changes.apiUrl) {
+      if (!config) config = {} as ExtensionConfig;
+      config.apiUrl = changes.apiUrl.newValue;
+    }
+    if (changes.apiKey) {
+      if (!config) config = {} as ExtensionConfig;
+      config.apiKey = changes.apiKey.newValue;
+    }
+    if (changes.model) {
+      if (!config) config = {} as ExtensionConfig;
+      config.model = changes.model.newValue;
+    }
+    if (changes.waitTime) {
+      if (!config) config = {} as ExtensionConfig;
+      config.waitTime = changes.waitTime.newValue;
+    }
+    if (changes.prompt) {
+      if (!config) config = {} as ExtensionConfig;
+      config.prompt = changes.prompt.newValue;
+    }
+    if (changes.aiTalkTools) {
+      if (!config) config = {} as ExtensionConfig;
+      config.aiTalkTools = changes.aiTalkTools.newValue;
+    }
+  }
+});
+
 function getSelectionPosition(): ScreenPosition {
   if (!selectionRange) {
     return { x: 0, y: 0 };
