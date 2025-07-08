@@ -427,3 +427,53 @@ input:checked + .slider:before {
     flex: 1;
   }
 }
+
+/* AI Search Styles */
+.ai-search-switch-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 25px;
+}
+
+.ai-search-switch-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.radio-item input[type="radio"] {
+  width: auto;
+  transform: scale(1.1);
+  margin-right: 5px;
+}
+
+.radio-item label {
+  font-weight: 500;
+  margin-bottom: 0;
+}
+
+.radio-help-text {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 0 30px; /* Indent to align with label */
+  font-style: italic;
+}

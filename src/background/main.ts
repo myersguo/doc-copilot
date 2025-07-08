@@ -1,10 +1,15 @@
 import {
- AICompletionRequest,
+  AICompletionRequest,
   AICompletionResponse,
+  AISearchRequest,
   AITalkRequest,
   AITalkResponse,
   OpenSidePanelRequest,
+  OpenSidePanelWithChatRequest,
 } from '../types';
+
+// Tracks which tabs have an active side panel chat for AI Search
+const activeSidePanelSearches: { [tabId: number]: boolean } = {};
 
 // Listens for messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -12,15 +17,153 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handleCompletionRequest(request, sendResponse);
     return true; // Keep the message channel open for async response
   }
-   if (request.type === 'AI_TALK_REQUEST') {
+  if (request.type === 'AI_TALK_REQUEST') {
     handleAITalkRequest(request, sendResponse);
     return true;
+  }
+  if (request.type === 'AI_SEARCH_REQUEST') {
+    handleAISearchRequest(request, sender);
+    return true; // Keep channel open for streaming
   }
   if (request.type === 'OPEN_SIDE_PANEL') {
     handleOpenSidePanel(request, sender);
     return false;
   }
+  if (request.type === 'OPEN_SIDE_PANEL_WITH_CHAT') {
+    handleOpenSidePanelWithChat(request, sender);
+    return false;
+  }
 });
+
+async function handleOpenSidePanelWithChat(
+  message: OpenSidePanelWithChatRequest,
+  sender: chrome.runtime.MessageSender
+): Promise<void> {
+  if (sender.tab?.id) {
+    const tabId = sender.tab.id;
+    activeSidePanelSearches[tabId] = true; // Mark this tab as having an active side panel search
+
+    await chrome.sidePanel.open({ tabId });
+    await chrome.storage.local.set({
+      aiSearchChatSession: {
+        query: message.query,
+        answer: message.answer,
+        timestamp: Date.now(),
+      },
+    });
+  }
+}
+
+async function handleAISearchRequest(
+  message: AISearchRequest,
+  sender: chrome.runtime.MessageSender
+): Promise<void> {
+  const { query } = message;
+  const tabId = sender.tab?.id;
+
+  if (!tabId) {
+    console.error('Cannot handle AI Search request without a valid tab ID.');
+    return;
+  }
+  
+  // Reset the side panel state for this tab when a new search starts
+  delete activeSidePanelSearches[tabId];
+
+  try {
+    const config = (await chrome.storage.sync.get(null)) as any;
+    if (!config.apiKey) {
+      throw new Error('API Key is not configured.');
+    }
+
+    const searchPrompt = `You are an AI search assistant. Provide a comprehensive, well-structured, and accurate answer for the following user query. Use Markdown for formatting (e.g., headings, lists, bold text). Query: "${query}"`;
+
+    const response = await fetch(config.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [{ role: 'user', content: searchPrompt }],
+        max_tokens: 1500,
+        temperature: 0.7,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText} - ${
+          errorData.error?.message || 'Unknown error'
+        }`
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    
+    const broadcast = (msg: any) => {
+      // Send to the content script panel
+      chrome.tabs.sendMessage(tabId, msg);
+      // If side panel is open for this search, send to it as well
+      if (activeSidePanelSearches[tabId]) {
+        chrome.runtime.sendMessage(msg);
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        broadcast({ type: 'AI_SEARCH_STREAM_RESPONSE', done: true });
+        delete activeSidePanelSearches[tabId]; // Clean up
+        break;
+      }
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data:')) continue;
+        
+        const data = trimmed.replace(/^data:\s*/, '');
+        if (data === '[DONE]') continue;
+
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            broadcast({
+              type: 'AI_SEARCH_STREAM_RESPONSE',
+              chunk: delta,
+              done: false,
+            });
+          }
+        } catch (e) {
+          console.warn('[AI_SEARCH_STREAM] JSON parse error:', e, data);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('AI Search Request Failed:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const finalMessage = {
+      type: 'AI_SEARCH_STREAM_RESPONSE',
+      done: true,
+      error: errorMessage,
+    };
+    // Send error to both content script and potentially side panel
+    chrome.tabs.sendMessage(tabId, finalMessage);
+    if (activeSidePanelSearches[tabId]) {
+      chrome.runtime.sendMessage(finalMessage);
+    }
+  } finally {
+    delete activeSidePanelSearches[tabId]; // Ensure cleanup on exit
+  }
+}
+
 
 async function handleAITalkRequest(
   message: AITalkRequest,
@@ -75,7 +218,6 @@ async function handleAITalkRequest(
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        console.log('[AI_TALK_STREAM] chunk:', chunk); // 日志输出
         // 解析每一行 JSON
         const lines = chunk.split('\n');
         for (const line of lines) {
@@ -88,7 +230,6 @@ async function handleAITalkRequest(
             const json = JSON.parse(data);
             // 兼容 deepseek-v3 响应格式
             const delta = json.choices?.[0]?.delta?.content;
-            console.log('[AI_TALK_STREAM] delta:', delta, 'fullContent:', fullContent);
             if (delta) {
               fullContent += delta;
               chrome.runtime.sendMessage({
@@ -207,7 +348,6 @@ async function handleCompletionRequest(
 
     if (data.choices?.[0]?.message?.content) {
       const completion = cleanCompletion(data.choices[0].message.content, context);
-      console.log('AI Completion Success:', completion);
       sendResponse({
         success: true,
         requestId: requestId,
@@ -216,7 +356,8 @@ async function handleCompletionRequest(
     } else {
       throw new Error('API response format is invalid: Missing choices data.');
     }
-  } catch (error) {
+  }
+ catch (error) {
     console.error('AI Completion Request Failed:', error);
     sendResponse({
       success: false,
@@ -239,7 +380,7 @@ function cleanCompletion(completion: string, context: string): string {
   let clean = completion.trim();
   
   // Remove potential quote wrapping
-  clean = clean.replace(/^["']|["']$/g, '');
+  clean = clean.replace(/^[\"']|[\"']$/g, '');
 
   // If completion starts with the context, remove it
   const beforeCursorTrimmed = beforeCursor.trim().toLowerCase();

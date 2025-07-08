@@ -4,6 +4,7 @@ import CompletionPopup from './ui/CompletionPopup';
 import TextSelectionToolbar from './ui/TextSelectionToolbar';
 import { initializeEventListeners } from './features/completion-handler';
 import { initializeTextSelectionHandler } from './features/text-selection-handler';
+import { initializeAISearchHandler } from './features/ai-search-handler.tsx';
 import { AITalkTool, ScreenPosition } from '../types';
 
 const rootEl = document.createElement('div');
@@ -58,3 +59,4 @@ export function renderTextSelectionToolbar(
 
 initializeEventListeners();
 initializeTextSelectionHandler();
+initializeAISearchHandler();

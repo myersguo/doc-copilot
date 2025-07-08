@@ -35,7 +35,10 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/content/ui/index.css"],
+      "resources": [
+        "src/content/ui/index.css",
+        "src/content/ui/AISearchPanel.css"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
