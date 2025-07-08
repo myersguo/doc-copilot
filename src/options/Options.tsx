@@ -34,6 +34,18 @@ Content to optimize:
 [SELECTED_TEXT]
 
 Please provide the optimized version directly.`
+  },
+  {
+    id: 'translate',
+    name: '翻译',
+    icon: '🚀',
+    enabled: true,
+    prompt: `Detect the input language:
+- If it's Chinese, translate it into English.
+- If it's not Chinese, translate it into Chinese.
+Only return the translation. Do not include any notes, explanations, or extra output.
+Text:
+[SELECTED_TEXT]`,
   }
 ];
 
@@ -75,10 +87,19 @@ const Options: React.FC = () => {
     const [config, setConfig] = useState<ExtensionConfig>(defaultConfig);
     const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'ai-talk'>('general');
+    const [aiTalkToolEnabled, setAiTalkToolEnabled] = useState<boolean>(true);
 
     useEffect(() => {
         chrome.storage.sync.get(defaultConfig, (data) => {
             setConfig(data as ExtensionConfig);
+        });
+    }, []);
+
+    useEffect(() => {
+        chrome.storage.sync.get(['aiTalkToolEnabled'], (data) => {
+            if (typeof data.aiTalkToolEnabled === 'boolean') {
+                setAiTalkToolEnabled(data.aiTalkToolEnabled);
+            }
         });
     }, []);
 
@@ -240,6 +261,30 @@ const Options: React.FC = () => {
                     <div className="config-group">
                         <label htmlFor="prompt">System Prompt:</label>
                         <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
+                    </div>
+
+                    <div className="section-title">Enable AI Talk Tools</div>
+                    <div className="config-group ai-talk-switch-group">
+                        <span className="ai-talk-switch-label">AI Talk 工具总开关：</span>
+                        <input
+                            id="aiTalkToolEnabled"
+                            type="checkbox"
+                            className="ai-talk-switch-checkbox"
+                            checked={aiTalkToolEnabled}
+                            onChange={e => {
+                                setAiTalkToolEnabled(e.target.checked);
+                                chrome.storage.sync.set({ aiTalkToolEnabled: e.target.checked }, () => {
+                                    chrome.tabs.query({}, (tabs) => {
+                                        tabs.forEach((tab) => {
+                                            if (tab.id) {
+                                                chrome.tabs.sendMessage(tab.id, { type: 'AITALKTOOL_SWITCH_UPDATED', enabled: e.target.checked })
+                                                    .catch(() => { });
+                                            }
+                                        });
+                                    });
+                                });
+                            }}
+                        />
                     </div>
                 </>
             )}

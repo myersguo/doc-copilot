@@ -4,6 +4,7 @@ import { renderTextSelectionToolbar } from '../index';
 let config: ExtensionConfig | null = null;
 let currentSelection: string = '';
 let selectionRange: Range | null = null;
+let aiTalkToolEnabled = true; // 新增全局开关，默认开启
 
 // 加载配置
 chrome.storage.sync.get(null, (data) => {
@@ -16,6 +17,18 @@ chrome.storage.sync.get(null, (data) => {
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'CONFIG_UPDATED') {
     config = message.config;
+  }
+});
+
+// 监听开关变化（假设存储在 chrome.storage.sync['aiTalkToolEnabled']）
+chrome.storage.sync.get(['aiTalkToolEnabled'], (data) => {
+  if (typeof data.aiTalkToolEnabled === 'boolean') {
+    aiTalkToolEnabled = data.aiTalkToolEnabled;
+  }
+});
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'AITALKTOOL_SWITCH_UPDATED') {
+    aiTalkToolEnabled = message.enabled;
   }
 });
 
@@ -33,6 +46,10 @@ function getSelectionPosition(): ScreenPosition {
 
 function handleTextSelection(e?: MouseEvent) {
  if (!config || !isUrlMatched(window.location.href, config.urls)) return;
+  if (!aiTalkToolEnabled) {
+    hideToolbar();
+    return;
+  }
 
   const target = e?.target as HTMLElement | undefined;
   
