@@ -176,4 +176,12 @@ export function initializeTextSelectionHandler() {
       hideToolbar();
     }
   });
+
+  // 支持 command + A 选中时也能触发文本选择逻辑
+  document.addEventListener('keydown', (e) => {
+    // macOS: e.metaKey 代表 command 键
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+      setTimeout(() => handleTextSelection(), 100);
+    }
+  });
 }

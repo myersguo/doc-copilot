@@ -190,9 +190,9 @@ const SidePanel: React.FC = () => {
               className={`message ${msg.role}`}
               style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end' }}
             >
-              <span className="icon" aria-label={msg.role === 'assistant' ? 'AI' : 'User'}>
+              {/* <span className="icon" aria-label={msg.role === 'assistant' ? 'AI' : 'User'}>
                 {msg.role === 'assistant' ? '🤖' : '🧑'}
-              </span>
+              </span> */}
               <div className="message-content-wrapper">
                 <div className="message-content">
                   {msg.role === 'assistant' ? <ReactMarkdown>{msg.content}</ReactMarkdown> : msg.content}
