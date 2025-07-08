@@ -310,6 +310,50 @@ button:hover {
   font-size: 16px;
 }
 
+/* AI Talk Tool Switch Styles */
+.ai-talk-switch-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.ai-talk-switch-label {
+  font-weight: 600;
+  color: #007bff;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.ai-talk-switch-checkbox {
+  width: 40px;
+  height: 22px;
+  appearance: none;
+  background: #ddd;
+  border-radius: 12px;
+  position: relative;
+  outline: none;
+  transition: background 0.3s;
+  cursor: pointer;
+}
+.ai-talk-switch-checkbox:checked {
+  background: #007bff;
+}
+.ai-talk-switch-checkbox::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.3s;
+}
+.ai-talk-switch-checkbox:checked::before {
+  left: 21px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .tool-header {
