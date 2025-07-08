@@ -1,5 +1,12 @@
 // src/types/index.ts
 
+export type AISearchMode = 'always' | 'questionMark' | 'manual';
+
+export interface AISearchConfig {
+  enabled: boolean;
+  searchMode: AISearchMode;
+}
+
 export interface ExtensionConfig {
   urls: string[];
   apiUrl: string;
@@ -9,6 +16,7 @@ export interface ExtensionConfig {
   prompt: string;
   aiTalkTools: AITalkTool[];
   stream?: boolean; // 新增，支持流式开关
+  aiSearchConfig: AISearchConfig;
 }
 
 export interface AITalkTool {
@@ -89,4 +97,58 @@ export interface OpenSidePanelRequest {
   selectedText: string;
 }
 
-export type RuntimeMessage = AICompletionRequest | AITalkRequest | ConfigUpdateRequest | ShowToolbarRequest | OpenSidePanelRequest;
+export interface OpenSidePanelWithChatRequest {
+  type: 'OPEN_SIDE_PANEL_WITH_CHAT';
+  query: string;
+  answer: string;
+}
+
+export interface AISearchRequest {
+  type: 'AI_SEARCH_REQUEST';
+  query: string;
+  config: ExtensionConfig;
+}
+
+export type RuntimeMessage = 
+  | AICompletionRequest 
+  | AITalkRequest 
+  | ConfigUpdateRequest 
+  | ShowToolbarRequest 
+  | OpenSidePanelRequest 
+  | AISearchRequest
+  | OpenSidePanelWithChatRequest;
+
+
+// For chrome.tabs.sendMessage
+export interface CompletionRequest {
+  type: 'COMPLETION_REQUEST';
+  requestId: number;
+}
+
+export interface CompletionResponse {
+  type: 'COMPLETION_RESPONSE';
+  requestId: number;
+  completion: string;
+}
+
+export interface CompletionError {
+  type: 'COMPLETION_ERROR';
+  requestId: number;
+  error: string;
+}
+
+export interface AITalkStreamResponse {
+  type: 'AI_TALK_STREAM_RESPONSE';
+  requestId: number;
+  chunk: string;
+  done: boolean;
+}
+
+export interface AISearchStreamResponse {
+  type: 'AI_SEARCH_STREAM_RESPONSE';
+  chunk: string;
+  done: boolean;
+  error?: string;
+}
+
+export type TabMessage = CompletionRequest | CompletionResponse | CompletionError | AITalkStreamResponse | AISearchStreamResponse;

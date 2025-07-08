@@ -82,17 +82,30 @@ Added explicit output instruction at the end
 Maintained all original functionality while improving clarity`,
     aiTalkTools: defaultAITalkTools,
     stream: true, // 默认开启流式
+    aiSearchConfig: {
+      enabled: true,
+      searchMode: 'questionMark',
+    },
 };
 
 const Options: React.FC = () => {
     const [config, setConfig] = useState<ExtensionConfig>(defaultConfig);
     const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [activeTab, setActiveTab] = useState<'general' | 'ai-talk'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'ai-talk' | 'ai-search'>('general');
     const [aiTalkToolEnabled, setAiTalkToolEnabled] = useState<boolean>(true);
 
     useEffect(() => {
         chrome.storage.sync.get(defaultConfig, (data) => {
-            setConfig(data as ExtensionConfig);
+            // Ensure aiSearchConfig exists and has all properties
+            const loadedConfig = {
+                ...defaultConfig,
+                ...data,
+                aiSearchConfig: {
+                    ...defaultConfig.aiSearchConfig,
+                    ...(data.aiSearchConfig || {}),
+                },
+            };
+            setConfig(loadedConfig as ExtensionConfig);
         });
     }, []);
 
@@ -210,6 +223,12 @@ const Options: React.FC = () => {
                     onClick={() => setActiveTab('ai-talk')}
                 >
                     AI Talk Tools
+                </button>
+                <button 
+                    className={`tab-btn ${activeTab === 'ai-search' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai-search')}
+                >
+                    AI Search
                 </button>
             </div>
 
@@ -388,6 +407,74 @@ const Options: React.FC = () => {
                     {config.aiTalkTools.length === 0 && (
                         <div className="empty-state">
                             <p>No AI Talk tools configured. Click "Add New Tool" to create your first tool.</p>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* AI Search Tab */}
+            {activeTab === 'ai-search' && (
+                <>
+                    <div className="section-title">AI Search Settings</div>
+                    <p className="help-text">Configure the AI-powered search enhancement on Google and Bing.</p>
+
+                    <div className="config-group ai-search-switch-group">
+                        <label htmlFor="aiSearchEnabled" className="ai-search-switch-label">Enable AI Search:</label>
+                        <label className="switch">
+                            <input
+                                id="aiSearchEnabled"
+                                type="checkbox"
+                                checked={config.aiSearchConfig.enabled}
+                                onChange={e => {
+                                    const newConfig = { ...config, aiSearchConfig: { ...config.aiSearchConfig, enabled: e.target.checked } };
+                                    setConfig(newConfig);
+                                }}
+                            />
+                            <span className="slider round"></span>
+                        </label>
+                    </div>
+
+                    {config.aiSearchConfig.enabled && (
+                        <div className="config-group">
+                            <label>Search Mode:</label>
+                            <div className="radio-group">
+                                <div className="radio-item">
+                                    <input
+                                        type="radio"
+                                        id="search-always"
+                                        name="searchMode"
+                                        value="always"
+                                        checked={config.aiSearchConfig.searchMode === 'always'}
+                                        onChange={e => setConfig({ ...config, aiSearchConfig: { ...config.aiSearchConfig, searchMode: e.target.value as any }})}
+                                    />
+                                    <label htmlFor="search-always">Always</label>
+                                    <p className="radio-help-text">Automatically trigger AI search for every search.</p>
+                                </div>
+                                <div className="radio-item">
+                                    <input
+                                        type="radio"
+                                        id="search-question"
+                                        name="searchMode"
+                                        value="questionMark"
+                                        checked={config.aiSearchConfig.searchMode === 'questionMark'}
+                                        onChange={e => setConfig({ ...config, aiSearchConfig: { ...config.aiSearchConfig, searchMode: e.target.value as any }})}
+                                    />
+                                    <label htmlFor="search-question">When query ends with "?"</label>
+                                    <p className="radio-help-text">Trigger only when your search query ends with a question mark.</p>
+                                </div>
+                                <div className="radio-item">
+                                    <input
+                                        type="radio"
+                                        id="search-manual"
+                                        name="searchMode"
+                                        value="manual"
+                                        checked={config.aiSearchConfig.searchMode === 'manual'}
+                                        onChange={e => setConfig({ ...config, aiSearchConfig: { ...config.aiSearchConfig, searchMode: e.target.value as any }})}
+                                    />
+                                    <label htmlFor="search-manual">Manual Trigger</label>
+                                    <p className="radio-help-text">Only trigger when you click the "AI Search" button on the search results page.</p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </>

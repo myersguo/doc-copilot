@@ -43,8 +43,6 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // 监听 storage 变化，实时同步 config
 chrome.storage.onChanged.addListener((changes, areaName) => {
-    console.log('changes', changes);
-    console.log('areaName', areaName);
   if (areaName === 'sync') {
     if (changes.stream) {
       if (!config) config = {} as ExtensionConfig;
@@ -148,7 +146,6 @@ function hideToolbar() {
 function handleToolClick(toolId: string) {
   if (!currentSelection) return;
   
-  // 发送消息到背景脚本打开侧边面板
   chrome.runtime.sendMessage({
     type: 'OPEN_SIDE_PANEL',
     toolId,
