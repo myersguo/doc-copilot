@@ -163,3 +163,171 @@ button:hover {
 .reset-btn:hover {
   background: #5a6268;
 }
+
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  color: #333;
+  background: #f8f9fa;
+}
+
+.tab-btn.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background: #f8f9fa;
+}
+
+/* AI Talk Tools Styles */
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tool-item {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  background: #fafafa;
+  transition: border-color 0.3s ease;
+}
+
+.tool-item:hover {
+  border-color: #007bff;
+}
+
+.tool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.tool-basic {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.tool-enable input[type="checkbox"] {
+  width: auto;
+  transform: scale(1.2);
+}
+
+.icon-input {
+  width: 50px !important;
+  text-align: center;
+  font-size: 18px;
+}
+
+.name-input {
+  width: 200px !important;
+  font-weight: 500;
+}
+
+.tool-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.duplicate-btn, .remove-btn {
+  background: none;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.duplicate-btn:hover {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.remove-btn:hover {
+  background: #ffebee;
+  border-color: #f44336;
+}
+
+.tool-prompt {
+  margin-top: 15px;
+}
+
+.tool-prompt label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.prompt-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .tool-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .tool-basic {
+    justify-content: space-between;
+  }
+  
+  .tool-actions {
+    justify-content: flex-end;
+  }
+  
+  .name-input {
+    width: auto !important;
+    flex: 1;
+  }
+}
