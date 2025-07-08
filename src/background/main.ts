@@ -39,6 +39,9 @@ async function handleAITalkRequest(
       ...conversationHistory,
     ];
 
+    // 判断是否为流式请求
+    const isStream = !!config.stream;
+
     const response = await fetch(config.apiUrl, {
       method: 'POST',
       headers: {
@@ -50,7 +53,7 @@ async function handleAITalkRequest(
         messages,
         max_tokens: 1000,
         temperature: 0.7,
-        stream: false,
+        stream: isStream,
       }),
     });
 
@@ -63,8 +66,61 @@ async function handleAITalkRequest(
       );
     }
 
-    const data = await response.json();
+    if (isStream && response.body) {
+      // 流式处理
+      const reader = response.body.getReader();
+      let fullContent = '';
+      const decoder = new TextDecoder('utf-8');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('[AI_TALK_STREAM] chunk:', chunk); // 日志输出
+        // 解析每一行 JSON
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          if (!trimmed.startsWith('data:')) continue;
+          const data = trimmed.replace(/^data:\s*/, '');
+          if (!data || data === '[DONE]') continue;
+          try {
+            const json = JSON.parse(data);
+            // 兼容 deepseek-v3 响应格式
+            const delta = json.choices?.[0]?.delta?.content;
+            console.log('[AI_TALK_STREAM] delta:', delta, 'fullContent:', fullContent);
+            if (delta) {
+              fullContent += delta;
+              chrome.runtime.sendMessage({
+                type: 'AI_TALK_STREAM',
+                requestId,
+                content: fullContent,
+                delta,
+                done: false,
+              });
+            }
+          } catch (e) {
+            console.warn('[AI_TALK_STREAM] parse error:', e, data);
+          }
+        }
+      }
+      // 结束
+      chrome.runtime.sendMessage({
+        type: 'AI_TALK_STREAM',
+        requestId,
+        content: fullContent,
+        done: true,
+      });
+      sendResponse({
+        success: true,
+        requestId,
+        response: fullContent,
+      });
+      return;
+    }
 
+    // 非流式
+    const data = await response.json();
     if (data.choices?.[0]?.message?.content) {
       sendResponse({
         success: true,
