@@ -285,7 +285,7 @@ const Options: React.FC = () => {
 
                     <div className="section-title">Enable AI Talk Tools</div>
                     <div className="config-group ai-talk-switch-group">
-                        <span className="ai-talk-switch-label">AI Talk 工具总开关：</span>
+                        <span className="ai-talk-switch-label">AI Talk Tools Enabled：</span>
                         <input
                             id="aiTalkToolEnabled"
                             type="checkbox"

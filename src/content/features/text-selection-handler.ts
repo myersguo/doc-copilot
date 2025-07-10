@@ -5,6 +5,7 @@ let config: ExtensionConfig | null = null;
 let currentSelection: string = '';
 let selectionRange: Range | null = null;
 let aiTalkToolEnabled = true; // 新增全局开关，默认开启
+let hideToolbarTimer: number | null = null; // 用于存储计时器ID
 
 // 加载配置
 chrome.storage.sync.get(null, (data) => {
@@ -84,11 +85,33 @@ function getSelectionPosition(): ScreenPosition {
   if (!selectionRange) {
     return { x: 0, y: 0 };
   }
-  
-  const rect = selectionRange.getBoundingClientRect();
+
+  const container = selectionRange.startContainer;
+  let rect;
+
+  // When selecting text in a textarea or input, the range's bounding rectangle is not reliable.
+  // Instead, we check if the selection container is one of these elements and use its bounding rectangle.
+  if (
+    container.nodeType === Node.ELEMENT_NODE &&
+    ['TEXTAREA', 'INPUT'].includes((container as HTMLElement).tagName)
+  ) {
+    rect = (container as HTMLElement).getBoundingClientRect();
+  } else {
+    // For all other elements, the range's bounding rectangle is accurate.
+    rect = selectionRange.getBoundingClientRect();
+    // If the rect is still 0, it might be a complex case (e.g. contenteditable div).
+    // As a fallback, we can check the active element.
+    if (rect.width === 0 && rect.height === 0) {
+      const activeElement = document.activeElement;
+      if (activeElement && ['TEXTAREA', 'INPUT'].includes(activeElement.tagName)) {
+        rect = activeElement.getBoundingClientRect();
+      }
+    }
+  }
+
   return {
     x: rect.left + window.scrollX,
-    y: rect.bottom + window.scrollY + 5
+    y: rect.bottom + window.scrollY + 5,
   };
 }
 
@@ -102,7 +125,11 @@ function handleTextSelection(e?: MouseEvent) {
   const target = e?.target as HTMLElement | undefined;
   
   if (target && target.closest('.text-selection-toolbar')) {
-    // 点击在 toolbar 上，忽略
+    // 点击在 toolbar 上，清除隐藏的计时器
+    if (hideToolbarTimer) {
+      clearTimeout(hideToolbarTimer);
+      hideToolbarTimer = null;
+    }
     return;
   }
   
@@ -131,14 +158,30 @@ function handleTextSelection(e?: MouseEvent) {
 function showToolbar(position: ScreenPosition) {
   if (!config?.aiTalkTools) return;
   
+  // 清除之前的计时器
+  if (hideToolbarTimer) {
+    clearTimeout(hideToolbarTimer);
+    hideToolbarTimer = null;
+  }
+
   const enabledTools = config.aiTalkTools.filter(tool => tool.enabled);
   if (enabledTools.length === 0) return;
   
   renderTextSelectionToolbar(enabledTools, position, handleToolClick, hideToolbar);
+
+  // 设置10秒后自动隐藏
+  hideToolbarTimer = window.setTimeout(() => {
+    hideToolbar();
+  }, 3000);
 }
 
 function hideToolbar() {
-     currentSelection = '';       // 清除选择文本
+  // 清除计时器
+  if (hideToolbarTimer) {
+    clearTimeout(hideToolbarTimer);
+    hideToolbarTimer = null;
+  }
+  currentSelection = '';       // 清除选择文本
   selectionRange = null;      // 清除选择范围
   renderTextSelectionToolbar([], { x: 0, y: 0 }, () => {}, () => {});
 }
@@ -180,5 +223,9 @@ export function initializeTextSelectionHandler() {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
       setTimeout(() => handleTextSelection(), 100);
     }
+  });
+
+  document.addEventListener('selectionchange', () => {
+    setTimeout(() => handleTextSelection(), 100);
   });
 }

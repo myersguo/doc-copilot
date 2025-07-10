@@ -112,9 +112,9 @@
   font-weight: 600;
 }
 
-.message-content h1 { font-size: 1.8em; }
-.message-content h2 { font-size: 1.5em; }
-.message-content h3 { font-size: 1.25em; }
+.message-content h1 { font-size: 1.25em; }
+.message-content h2 { font-size: 1.2em; }
+.message-content h3 { font-size: 1.15em; }
 .message-content h4 { font-size: 1.1em; }
 
 /* 段落 */
