@@ -224,4 +224,8 @@ export function initializeTextSelectionHandler() {
       setTimeout(() => handleTextSelection(), 100);
     }
   });
+
+  document.addEventListener('selectionchange', () => {
+    setTimeout(() => handleTextSelection(), 100);
+  });
 }
