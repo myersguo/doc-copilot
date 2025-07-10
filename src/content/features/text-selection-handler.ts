@@ -5,6 +5,7 @@ let config: ExtensionConfig | null = null;
 let currentSelection: string = '';
 let selectionRange: Range | null = null;
 let aiTalkToolEnabled = true; // 新增全局开关，默认开启
+let hideToolbarTimer: number | null = null; // 用于存储计时器ID
 
 // 加载配置
 chrome.storage.sync.get(null, (data) => {
@@ -102,7 +103,11 @@ function handleTextSelection(e?: MouseEvent) {
   const target = e?.target as HTMLElement | undefined;
   
   if (target && target.closest('.text-selection-toolbar')) {
-    // 点击在 toolbar 上，忽略
+    // 点击在 toolbar 上，清除隐藏的计时器
+    if (hideToolbarTimer) {
+      clearTimeout(hideToolbarTimer);
+      hideToolbarTimer = null;
+    }
     return;
   }
   
@@ -131,14 +136,30 @@ function handleTextSelection(e?: MouseEvent) {
 function showToolbar(position: ScreenPosition) {
   if (!config?.aiTalkTools) return;
   
+  // 清除之前的计时器
+  if (hideToolbarTimer) {
+    clearTimeout(hideToolbarTimer);
+    hideToolbarTimer = null;
+  }
+
   const enabledTools = config.aiTalkTools.filter(tool => tool.enabled);
   if (enabledTools.length === 0) return;
   
   renderTextSelectionToolbar(enabledTools, position, handleToolClick, hideToolbar);
+
+  // 设置10秒后自动隐藏
+  hideToolbarTimer = window.setTimeout(() => {
+    hideToolbar();
+  }, 3000);
 }
 
 function hideToolbar() {
-     currentSelection = '';       // 清除选择文本
+  // 清除计时器
+  if (hideToolbarTimer) {
+    clearTimeout(hideToolbarTimer);
+    hideToolbarTimer = null;
+  }
+  currentSelection = '';       // 清除选择文本
   selectionRange = null;      // 清除选择范围
   renderTextSelectionToolbar([], { x: 0, y: 0 }, () => {}, () => {});
 }
