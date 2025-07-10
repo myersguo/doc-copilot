@@ -85,11 +85,33 @@ function getSelectionPosition(): ScreenPosition {
   if (!selectionRange) {
     return { x: 0, y: 0 };
   }
-  
-  const rect = selectionRange.getBoundingClientRect();
+
+  const container = selectionRange.startContainer;
+  let rect;
+
+  // When selecting text in a textarea or input, the range's bounding rectangle is not reliable.
+  // Instead, we check if the selection container is one of these elements and use its bounding rectangle.
+  if (
+    container.nodeType === Node.ELEMENT_NODE &&
+    ['TEXTAREA', 'INPUT'].includes((container as HTMLElement).tagName)
+  ) {
+    rect = (container as HTMLElement).getBoundingClientRect();
+  } else {
+    // For all other elements, the range's bounding rectangle is accurate.
+    rect = selectionRange.getBoundingClientRect();
+    // If the rect is still 0, it might be a complex case (e.g. contenteditable div).
+    // As a fallback, we can check the active element.
+    if (rect.width === 0 && rect.height === 0) {
+      const activeElement = document.activeElement;
+      if (activeElement && ['TEXTAREA', 'INPUT'].includes(activeElement.tagName)) {
+        rect = activeElement.getBoundingClientRect();
+      }
+    }
+  }
+
   return {
     x: rect.left + window.scrollX,
-    y: rect.bottom + window.scrollY + 5
+    y: rect.bottom + window.scrollY + 5,
   };
 }
 
