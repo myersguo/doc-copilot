@@ -14,6 +14,7 @@ export interface ExtensionConfig {
   model: string;
   waitTime: number;
   prompt: string;
+  aiToolsEnabled: boolean;
   aiTalkTools: AITalkTool[];
   stream?: boolean; // 新增，支持流式开关
   aiSearchConfig: AISearchConfig;
