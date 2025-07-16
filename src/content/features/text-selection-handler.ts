@@ -41,7 +41,24 @@ function getSelectionPosition(): ScreenPosition {
   if (!selectionRange) {
     return { x: 0, y: 0 };
   }
-  const rect = selectionRange.getBoundingClientRect();
+  const container = selectionRange.startContainer;
+  let rect;
+
+  if (
+    container.nodeType === Node.ELEMENT_NODE &&
+    ['TEXTAREA', 'INPUT'].includes((container as HTMLElement).tagName)
+  ) {
+    rect = (container as HTMLElement).getBoundingClientRect();
+  } else {
+    rect = selectionRange.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      const activeElement = document.activeElement;
+      if (activeElement && ['TEXTAREA', 'INPUT'].includes(activeElement.tagName)) {
+        rect = activeElement.getBoundingClientRect();
+      }
+    }
+  }
+
   return {
     x: rect.left + window.scrollX,
     y: rect.bottom + window.scrollY + 5,
@@ -113,7 +130,7 @@ function hideToolbar() {
   }
   currentSelection = '';
   selectionRange = null;
-  renderTextSelectionToolbar([], { x: 0, y: 0 }, () => {}, () => {}, () => {}, () => {});
+  renderTextSelectionToolbar([], { x: 0, y: 0 }, () => { }, () => { }, () => { }, () => { });
 }
 
 function handleToolClick(toolId: string) {
