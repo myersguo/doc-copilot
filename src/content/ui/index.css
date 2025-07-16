@@ -91,13 +91,13 @@
 
 .toolbar-menu-container {
   position: relative;
-  display: inline-block;
 }
 
 .toolbar-dropdown-menu {
   position: absolute;
   top: calc(100% + 5px); /* Add some space */
   right: 0;
+  height: fit-content;
   background-color: #ffffff; /* Brighter background */
   border-radius: 8px; /* Softer corners */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Deeper shadow */
