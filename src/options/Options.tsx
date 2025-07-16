@@ -210,22 +210,18 @@ const Options: React.FC = () => {
                 >
                     General Settings
                 </button>
-                {config.aiToolsEnabled && (
-                    <>
-                        <button 
-                            className={`tab-btn ${activeTab === 'ai-talk' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('ai-talk')}
-                        >
-                            AI Talk Tools
-                        </button>
-                        <button 
-                            className={`tab-btn ${activeTab === 'ai-search' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('ai-search')}
-                        >
-                            AI Search
-                        </button>
-                    </>
-                )}
+                <button 
+                    className={`tab-btn ${activeTab === 'ai-talk' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai-talk')}
+                >
+                    AI Talk Tools
+                </button>
+                <button 
+                    className={`tab-btn ${activeTab === 'ai-search' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('ai-search')}
+                >
+                    AI Search
+                </button>
             </div>
 
             {/* General Settings Tab */}
@@ -278,7 +274,12 @@ const Options: React.FC = () => {
                         <label htmlFor="prompt">System Prompt:</label>
                         <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
                     </div>
+                </>
+            )}
 
+            {/* AI Talk Tools Tab */}
+            {activeTab === 'ai-talk' && (
+                <>
                     <div className="section-title">Enable AI Tools</div>
                     <div className="config-group ai-talk-switch-group">
                         <span className="ai-talk-switch-label">Enable AI tool：</span>
@@ -287,122 +288,116 @@ const Options: React.FC = () => {
                             type="checkbox"
                             className="ai-talk-switch-checkbox"
                             checked={config.aiToolsEnabled}
-                            onChange={e => {
-                                setConfig({ ...config, aiToolsEnabled: e.target.checked });
-                                if (!e.target.checked) {
-                                    setActiveTab('general');
-                                }
-                            }}
+                            onChange={e => setConfig({ ...config, aiToolsEnabled: e.target.checked })}
                         />
                     </div>
-                </>
-            )}
 
-            {/* AI Talk Tools Tab */}
-            {activeTab === 'ai-talk' && (
-                <>
-                    <div className="section-title">
-                        AI Talk Tools
-                        <button type="button" className="add-btn" onClick={addTool}>Add New Tool</button>
-                    </div>
-                    <p className="help-text">Configure tools that appear when you select text. Use [SELECTED_TEXT] as a placeholder for the selected content.</p>
-
-                    <div className="config-group stream-switch-group">
-                        <label htmlFor="stream" className="stream-switch-label">AI Talk Stream Mode:</label>
-                        <label className="switch">
-                            <input
-                                id="stream"
-                                type="checkbox"
-                                checked={config.stream ?? true}
-                                onChange={e => {
-                                    const newConfig = { ...config, stream: e.target.checked };
-                                    setConfig(newConfig);
-                                    // 自动保存并广播
-                                    const cleanedConfig = {
-                                        ...newConfig,
-                                        urls: newConfig.urls.map(u => u.trim()).filter(Boolean),
-                                    };
-                                    chrome.storage.sync.set(cleanedConfig, () => {
-                                        // 通知所有 tab
-                                        chrome.tabs.query({}, (tabs) => {
-                                            tabs.forEach((tab) => {
-                                                if (tab.id) {
-                                                    chrome.tabs.sendMessage(tab.id, { type: 'AITALKTOOL_STREAM_UPDATED', stream: cleanedConfig.stream })
-                                                        .catch(() => { /* Ignore errors for tabs that can't be reached */ });
-                                                }
-                                            });
-                                        });
-                                    });
-                                }}
-                            />
-                            <span className="slider round"></span>
-                        </label>
-                        <span className="help-text">Enable stream mode for AI Talk (recommended for better experience)</span>
-                    </div>
-
-                    <div className="tools-list">
-                        {config.aiTalkTools.map((tool, index) => (
-                            <div key={tool.id} className="tool-item">
-                                <div className="tool-header">
-                                    <div className="tool-basic">
-                                        <div className="tool-enable">
-                                            <input
-                                                type="checkbox"
-                                                checked={tool.enabled}
-                                                onChange={(e) => handleToolChange(index, 'enabled', e.target.checked)}
-                                            />
-                                        </div>
-                                        <div className="tool-icon-input">
-                                            <input
-                                                type="text"
-                                                value={tool.icon}
-                                                onChange={(e) => handleToolChange(index, 'icon', e.target.value)}
-                                                placeholder="🔧"
-                                                className="icon-input"
-                                            />
-                                        </div>
-                                        <div className="tool-name-input">
-                                            <input
-                                                type="text"
-                                                value={tool.name}
-                                                onChange={(e) => handleToolChange(index, 'name', e.target.value)}
-                                                placeholder="Tool Name"
-                                                className="name-input"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="tool-actions">
-                                        <button type="button" className="duplicate-btn" onClick={() => duplicateTool(index)}>
-                                            📋
-                                        </button>
-                                        <button type="button" className="remove-btn" onClick={() => removeTool(index)}>
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="tool-prompt">
-                                    <label>Prompt:</label>
-                                    <textarea
-                                        value={tool.prompt}
-                                        onChange={(e) => handleToolChange(index, 'prompt', e.target.value)}
-                                        placeholder="Enter your prompt here. Use [SELECTED_TEXT] for the selected content."
-                                        className="prompt-textarea"
-                                    />
-                                </div>
+                    {config.aiToolsEnabled && (
+                        <>
+                            <div className="section-title">
+                                AI Talk Tools
+                                <button type="button" className="add-btn" onClick={addTool}>Add New Tool</button>
                             </div>
-                        ))}
-                    </div>
+                            <p className="help-text">Configure tools that appear when you select text. Use [SELECTED_TEXT] as a placeholder for the selected content.</p>
 
-                    {config.aiTalkTools.length === 0 && (
-                        <div className="empty-state">
-                            <p>No AI Talk tools configured. Click "Add New Tool" to create your first tool.</p>
-                        </div>
+                            <div className="config-group stream-switch-group">
+                                <label htmlFor="stream" className="stream-switch-label">AI Talk Stream Mode:</label>
+                                <label className="switch">
+                                    <input
+                                        id="stream"
+                                        type="checkbox"
+                                        checked={config.stream ?? true}
+                                        onChange={e => {
+                                            const newConfig = { ...config, stream: e.target.checked };
+                                            setConfig(newConfig);
+                                            // Auto-save and broadcast
+                                            const cleanedConfig = {
+                                                ...newConfig,
+                                                urls: newConfig.urls.map(u => u.trim()).filter(Boolean),
+                                            };
+                                            chrome.storage.sync.set(cleanedConfig, () => {
+                                                // Notify all tabs
+                                                chrome.tabs.query({}, (tabs) => {
+                                                    tabs.forEach((tab) => {
+                                                        if (tab.id) {
+                                                            chrome.tabs.sendMessage(tab.id, { type: 'AITALKTOOL_STREAM_UPDATED', stream: cleanedConfig.stream })
+                                                                .catch(() => { /* Ignore errors for tabs that can't be reached */ });
+                                                        }
+                                                    });
+                                                });
+                                            });
+                                        }}
+                                    />
+                                    <span className="slider round"></span>
+                                </label>
+                                <span className="help-text">Enable stream mode for AI Talk (recommended for better experience)</span>
+                            </div>
+
+                            <div className="tools-list">
+                                {config.aiTalkTools.map((tool, index) => (
+                                    <div key={tool.id} className="tool-item">
+                                        <div className="tool-header">
+                                            <div className="tool-basic">
+                                                <div className="tool-enable">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={tool.enabled}
+                                                        onChange={(e) => handleToolChange(index, 'enabled', e.target.checked)}
+                                                    />
+                                                </div>
+                                                <div className="tool-icon-input">
+                                                    <input
+                                                        type="text"
+                                                        value={tool.icon}
+                                                        onChange={(e) => handleToolChange(index, 'icon', e.target.value)}
+                                                        placeholder="🔧"
+                                                        className="icon-input"
+                                                    />
+                                                </div>
+                                                <div className="tool-name-input">
+                                                    <input
+                                                        type="text"
+                                                        value={tool.name}
+                                                        onChange={(e) => handleToolChange(index, 'name', e.target.value)}
+                                                        placeholder="Tool Name"
+                                                        className="name-input"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="tool-actions">
+                                                <button type="button" className="duplicate-btn" onClick={() => duplicateTool(index)}>
+                                                    📋
+                                                </button>
+                                                <button type="button" className="remove-btn" onClick={() => removeTool(index)}>
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="tool-prompt">
+                                            <label>Prompt:</label>
+                                            <textarea
+                                                value={tool.prompt}
+                                                onChange={(e) => handleToolChange(index, 'prompt', e.target.value)}
+                                                placeholder="Enter your prompt here. Use [SELECTED_TEXT] for the selected content."
+                                                className="prompt-textarea"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {config.aiTalkTools.length === 0 && (
+                                <div className="empty-state">
+                                    <p>No AI Talk tools configured. Click "Add New Tool" to create your first tool.</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </>
             )}
 
             {/* AI Search Tab */}
-            {activeTab === 'ai-search' && config.aiToolsEnabled && (
+            {activeTab === 'ai-search' && (
                 <>
                     <div className="section-title">AI Search Settings</div>
                     <p className="help-text">Configure the AI-powered search enhancement on Google and Bing.</p>
