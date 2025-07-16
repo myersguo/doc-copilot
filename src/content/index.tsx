@@ -39,7 +39,9 @@ export function renderTextSelectionToolbar(
     tools: AITalkTool[],
     position: ScreenPosition,
     onToolClick: (toolId: string) => void,
-    onHide: () => void
+    onHide: () => void,
+    onDisableDomain: () => void,
+    onDisableGlobally: () => void
 ) {
     if (tools.length > 0) {
         reactRoot.render(
@@ -49,6 +51,8 @@ export function renderTextSelectionToolbar(
                     position={position}
                     onToolClick={onToolClick}
                     onHide={onHide}
+                    onDisableDomain={onDisableDomain}
+                    onDisableGlobally={onDisableGlobally}
                 />
             </React.StrictMode>
         );

@@ -80,6 +80,7 @@ Emphasized the core instruction (return only completion text) upfront
 Streamlined rules for easier parsing
 Added explicit output instruction at the end
 Maintained all original functionality while improving clarity`,
+    aiToolsEnabled: true,
     aiTalkTools: defaultAITalkTools,
     stream: true, // 默认开启流式
     aiSearchConfig: {
@@ -92,7 +93,6 @@ const Options: React.FC = () => {
     const [config, setConfig] = useState<ExtensionConfig>(defaultConfig);
     const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'ai-talk' | 'ai-search'>('general');
-    const [aiTalkToolEnabled, setAiTalkToolEnabled] = useState<boolean>(true);
 
     useEffect(() => {
         chrome.storage.sync.get(defaultConfig, (data) => {
@@ -106,14 +106,6 @@ const Options: React.FC = () => {
                 },
             };
             setConfig(loadedConfig as ExtensionConfig);
-        });
-    }, []);
-
-    useEffect(() => {
-        chrome.storage.sync.get(['aiTalkToolEnabled'], (data) => {
-            if (typeof data.aiTalkToolEnabled === 'boolean') {
-                setAiTalkToolEnabled(data.aiTalkToolEnabled);
-            }
         });
     }, []);
 
@@ -218,18 +210,22 @@ const Options: React.FC = () => {
                 >
                     General Settings
                 </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'ai-talk' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('ai-talk')}
-                >
-                    AI Talk Tools
-                </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'ai-search' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('ai-search')}
-                >
-                    AI Search
-                </button>
+                {config.aiToolsEnabled && (
+                    <>
+                        <button 
+                            className={`tab-btn ${activeTab === 'ai-talk' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('ai-talk')}
+                        >
+                            AI Talk Tools
+                        </button>
+                        <button 
+                            className={`tab-btn ${activeTab === 'ai-search' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('ai-search')}
+                        >
+                            AI Search
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* General Settings Tab */}
@@ -283,26 +279,19 @@ const Options: React.FC = () => {
                         <textarea id="prompt" value={config.prompt} onChange={e => setConfig({...config, prompt: e.target.value})} />
                     </div>
 
-                    <div className="section-title">Enable AI Talk Tools</div>
+                    <div className="section-title">Enable AI Tools</div>
                     <div className="config-group ai-talk-switch-group">
-                        <span className="ai-talk-switch-label">AI Talk Tools Enabled：</span>
+                        <span className="ai-talk-switch-label">Enable AI tool：</span>
                         <input
-                            id="aiTalkToolEnabled"
+                            id="aiToolsEnabled"
                             type="checkbox"
                             className="ai-talk-switch-checkbox"
-                            checked={aiTalkToolEnabled}
+                            checked={config.aiToolsEnabled}
                             onChange={e => {
-                                setAiTalkToolEnabled(e.target.checked);
-                                chrome.storage.sync.set({ aiTalkToolEnabled: e.target.checked }, () => {
-                                    chrome.tabs.query({}, (tabs) => {
-                                        tabs.forEach((tab) => {
-                                            if (tab.id) {
-                                                chrome.tabs.sendMessage(tab.id, { type: 'AITALKTOOL_SWITCH_UPDATED', enabled: e.target.checked })
-                                                    .catch(() => { });
-                                            }
-                                        });
-                                    });
-                                });
+                                setConfig({ ...config, aiToolsEnabled: e.target.checked });
+                                if (!e.target.checked) {
+                                    setActiveTab('general');
+                                }
                             }}
                         />
                     </div>
@@ -413,7 +402,7 @@ const Options: React.FC = () => {
             )}
 
             {/* AI Search Tab */}
-            {activeTab === 'ai-search' && (
+            {activeTab === 'ai-search' && config.aiToolsEnabled && (
                 <>
                     <div className="section-title">AI Search Settings</div>
                     <p className="help-text">Configure the AI-powered search enhancement on Google and Bing.</p>

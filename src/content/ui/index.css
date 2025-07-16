@@ -82,3 +82,63 @@
   font-size: 12px;
   white-space: nowrap;
 }
+
+.toolbar-divider {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.toolbar-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.toolbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px); /* Add some space */
+  right: 0;
+  background-color: #ffffff; /* Brighter background */
+  border-radius: 8px; /* Softer corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Deeper shadow */
+  padding: 8px;
+  margin-top: 4px;
+  width: 180px; /* Fixed width */
+  z-index: 1000;
+  border: 1px solid #e2e8f0; /* Subtle border */
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: fadeIn 0.2s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toolbar-dropdown-menu button {
+  display: flex; /* Use flex for alignment */
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px; /* More padding */
+  background: none;
+  border: none;
+  color: #2d3748; /* Darker text for readability */
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px; /* Rounded corners for items */
+  font-size: 14px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.toolbar-dropdown-menu button:hover {
+  background-color: #f1f5f9; /* Light hover effect */
+  color: #1a202c;
+}
+
+.toolbar-dropdown-menu button .icon {
+  font-size: 16px;
+}
